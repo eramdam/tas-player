@@ -20,6 +20,7 @@ declare module 'jsnes' {
   export class NES {
     constructor(options: NESContructorOptions) {}
     loadROM: (romData: string) => void
+    fpsFrameCount: number
     frame: () => void
     buttonDown: (player: number, key: number) => void
     buttonUp: (player: number, key: number) => void

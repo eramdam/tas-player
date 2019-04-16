@@ -1,5 +1,7 @@
 const FPS = 60.098
 
+export const FrameInternal = 1e3 / FPS
+
 interface FrametimerProps {
   onWriteFrame: () => void
   onGenerateFrame: () => void
@@ -13,7 +15,7 @@ export class FrameTimer {
     this.onWriteFrame = props.onWriteFrame
     this.onAnimationFrame = this.onAnimationFrame.bind(this)
     this.running = true
-    this.interval = 1e3 / FPS
+    this.interval = FrameInternal
     this.lastFrameTime = 0
   }
 

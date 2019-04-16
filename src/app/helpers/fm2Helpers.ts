@@ -160,6 +160,6 @@ const fm2ToJSNESMap = {
   [FM2GamePadInputsEnum.LEFT]: Controller.BUTTON_LEFT,
   [FM2GamePadInputsEnum.RIGHT]: Controller.BUTTON_RIGHT,
 }
-export function FM2GamePadtoJSNESControllers(input: FM2GamePadInputsEnum) {
+export function FM2GamePadToJSNESControllers(input: FM2GamePadInputsEnum) {
   return fm2ToJSNESMap[input]
 }

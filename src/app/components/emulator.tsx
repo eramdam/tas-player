@@ -1,7 +1,7 @@
 import {Controller, NES} from 'jsnes';
 import React, {Component} from 'react';
 
-import {FM2GamePadtoJSNESControllers, FM2Movie} from '../helpers/fm2Helpers';
+import {FM2GamePadToJSNESControllers, FM2Movie} from '../helpers/fm2Helpers';
 import {FrameTimer} from '../helpers/frameTimer';
 import Speakers from '../helpers/speakers';
 
@@ -92,24 +92,33 @@ export class Emulator extends Component<EmulatorProps> {
     })
 
     this.frameTimer = new FrameTimer({
-      onGenerateFrame: this.nes.frame,
+      onGenerateFrame: async () => {
+        this.maybePressButtons()
+        this.nes.frame()
+
+        if (this.frameCounterRef.current) {
+          this.frameCounterRef.current.innerHTML = String(
+            this.nes.fpsFrameCount
+          )
+        }
+      },
       onWriteFrame: () => {
         const ctx = this.getCtx()
 
         if (!this.imageData || !this.framebuffer8 || !ctx) return
-        this.maybePressButtons()
-        this.frameCount += 1
 
         this.imageData.data.set(this.framebuffer8)
         ctx.putImageData(this.imageData, 0, 0)
       },
     })
+
+    window.nes = this.nes
   }
 
   private speakers: Speakers
   private frameTimer: FrameTimer
-  private frameCount = 0
   private canvasRef = React.createRef<HTMLCanvasElement>()
+  private frameCounterRef = React.createRef<HTMLDivElement>()
   private nes: NES
   private framebuffer32?: Uint32Array
   private framebuffer8?: Uint8ClampedArray
@@ -148,31 +157,40 @@ export class Emulator extends Component<EmulatorProps> {
    * DISCO.
    */
 
-  private maybePressButtons = () => {
-    const { tasData } = this.props
-    const commands = tasData.frames[this.frameCount]
-
-    if (!commands) return
-
-    if (commands.port0.length === 0) {
+  private maybePressButtons = async () => {
+    // @ts-ignore
+    if (this.nes.ppu.f_spVisibility === 0) {
       return
     }
-
-    commands.port0.forEach(i => {
-      const buttonToPress = FM2GamePadtoJSNESControllers(i)
-
-      if (buttonToPress) {
-        this.nes.buttonDown(1, buttonToPress)
+    const { tasData } = this.props
+    const commands = tasData.frames[this.nes.fpsFrameCount]
+    if (!commands) return
+    const buttonsToPress = commands.port0.map(i =>
+      FM2GamePadToJSNESControllers(i)
+    )
+    // Button down
+    for (const b of buttonsToPress) {
+      if (b >= 0) {
+        this.nes.buttonDown(1, b)
+      }
+    }
+    await wait(10)
+    // Button up
+    for (const i of commands.port0) {
+      const buttonToPress = FM2GamePadToJSNESControllers(i)
+      if (buttonToPress >= 0) {
         this.nes.buttonUp(1, buttonToPress)
       }
-    })
+    }
   }
 
   componentDidMount() {
     document.addEventListener('keydown', event => {
+      console.log('keydown', Date.now())
       keyboard(this.nes.buttonDown, event)
     })
     document.addEventListener('keyup', event => {
+      console.log('keyup', Date.now())
       keyboard(this.nes.buttonUp, event)
     })
   }
@@ -192,6 +210,27 @@ export class Emulator extends Component<EmulatorProps> {
   }
 
   render() {
-    return <canvas ref={this.canvasRef} width="256" height="240" />
+    return (
+      <>
+        <canvas ref={this.canvasRef} width="256" height="240" />
+        {/* <div
+          ref={this.frameCounterRef}
+          id="framecount"
+          style={{
+            position: 'absolute',
+            background: 'pink',
+            color: 'black',
+          }}
+        /> */}
+      </>
+    )
   }
+}
+
+function wait(n: number) {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve()
+    }, n)
+  })
 }
